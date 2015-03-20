@@ -87,6 +87,7 @@ minetest.register_node("mysponge:air1",{
 --	description = "Air 1",
 	tiles = {"mysponge_air.png"},
 	drawtype = "allfaces",
+	walkable = false,
 	paramtype = "light",
 	groups = {dig_immediate=1, oddly_breakable_by_hand=1, not_in_creative_inventory=1}
 })
@@ -94,6 +95,7 @@ minetest.register_node("mysponge:air2",{
 --	description = "Air 2",
 	tiles = {"mysponge_air.png"},
 	drawtype = "allfaces",
+	walkable = false,
 	paramtype = "light",
 	groups = {dig_immediate=1, oddly_breakable_by_hand=1, not_in_creative_inventory=1}
 })
@@ -101,6 +103,7 @@ minetest.register_node("mysponge:air3",{
 --	description = "Air 3",
 	tiles = {"mysponge_air.png"},
 	drawtype = "allfaces",
+	walkable = false,
 	paramtype = "light",
 	groups = {dig_immediate=1, oddly_breakable_by_hand=1, not_in_creative_inventory=1}
 })
@@ -202,6 +205,7 @@ minetest.register_abm({
 })
 minetest.register_abm({
 	nodenames = {"mysponge:sponge_moist"},
+	neighbors = {"mysponge:air1"},
 	interval = 0.5,
 	chance = 1,
 	action = function(pos)
@@ -210,12 +214,46 @@ minetest.register_abm({
 })
 minetest.register_abm({
 	nodenames = {"mysponge:sponge_wet"},
+	neighbors = {"mysponge:air1"},
 	interval = 0.5,
 	chance = 1,
 	action = function(pos)
 		minetest.set_node(pos, {name="mysponge:sponge_soaked"})
 	end,
 })
+
+------------------------------------------------------------------------------------------------
+--Shrink Sponge in Air
+------------------------------------------------------------------------------------------------
+minetest.register_abm({
+	nodenames = {"mysponge:sponge_soaked"},
+	neighbors = {"air"},
+	interval = 120,
+	chance = 1,
+	action = function(pos)
+		minetest.set_node(pos, {name="mysponge:sponge_wet"})
+	end,
+})
+minetest.register_abm({
+	nodenames = {"mysponge:sponge_wet"},
+	neighbors = {"air"},
+	interval = 120,
+	chance = 1,
+	action = function(pos)
+		minetest.set_node(pos, {name="mysponge:sponge_moist"})
+	end,
+})
+minetest.register_abm({
+	nodenames = {"mysponge:sponge_moist"},
+	neighbors = {"air"},
+	interval = 120,
+	chance = 1,
+	action = function(pos)
+		minetest.set_node(pos, {name="mysponge:sponge_dry"})
+	end,
+})
+
+
 -------------------------------------------------------------------------------------------------
 --Craft
 

@@ -1,11 +1,24 @@
+local mysponge_table = { -- item, ,desc, image, scale, nodegroup, bright
+{"sponge_dry",   "Dry Sponge",    "mysponge_sponge.png", "0.5", {dig_immediate=1, oddly_breakable_by_hand=1, flammable=1}},
+{"sponge_moist", "Moist Sponge",  "mysponge_sponge2.png", "0.7", {dig_immediate=1, oddly_breakable_by_hand=1, not_in_creative_inventory=1}},
+{"sponge_wet",   "Wet Sponge",    "mysponge_sponge3.png", "1",   {dig_immediate=1, oddly_breakable_by_hand=1, not_in_creative_inventory=1 }},
+{"sponge_soaked","Soaked Sponge", "mysponge_sponge3.png", "1", {dig_immediate=1, oddly_breakable_by_hand=1, not_in_creative_inventory=1}},
+}
+for i in ipairs(mysponge_table) do
+	local item = mysponge_table[i][1]
+	local desc = mysponge_table[i][2]
+	local image = mysponge_table[i][3]
+	local scale = mysponge_table[i][4]
+	local nodegroup = mysponge_table[i][5]
 
-minetest.register_node("mysponge:sponge_dry",{
-	description = "Dry Sponge",
-	tiles = {"mysponge_sponge.png"},
+
+minetest.register_node("mysponge:"..item,{
+	description = desc,
+	tiles = {image},
 	drawtype = "nodebox",
-	visual_scale = 0.5,
+	visual_scale = scale,
 	paramtype = "light",
-	groups = {dig_immediate=1, oddly_breakable_by_hand=1},
+	groups = nodegroup,
 	node_box = {
 		type = "fixed",
 		fixed = {
@@ -20,93 +33,25 @@ minetest.register_node("mysponge:sponge_dry",{
 	}
 })
 
+end
 
-
-minetest.register_node("mysponge:sponge_moist",{
---	description = "Moist Sponge",
-	tiles = {"mysponge_sponge2.png"},
-	drawtype = "nodebox",
-	visual_scale = 0.7,
-	paramtype = "light",
-	groups = {dig_immediate=1, oddly_breakable_by_hand=1, not_in_creative_inventory=1},
-	node_box = {
-		type = "fixed",
-		fixed = {
-			{-0.5, -0.5, -0.5, 0.5, 0.5, 0.5}, 
-		}
-	},
-	selection_box = {
-		type = "fixed",
-		fixed = {
-			{-0.25, -0.5, -0.25, 0.25, 0, 0.25}, 
-		}
+local air_nodes = {
+	{"air1"},
+	{"air2"},
+	{"air3"},
 	}
-})
-minetest.register_node("mysponge:sponge_wet",{
---	description = "Wet Sponge",
-	tiles = {"mysponge_sponge3.png"},
-	drawtype = "nodebox",
-	visual_scale = 1,
-	paramtype = "light",
-	groups = {dig_immediate=1, oddly_breakable_by_hand=1, not_in_creative_inventory=1},
-	node_box = {
-		type = "fixed",
-		fixed = {
-			{-0.5, -0.5, -0.5, 0.5, 0.5, 0.5}, 
-		}
-	},
-	selection_box = {
-		type = "fixed",
-		fixed = {
-			{-0.25, -0.5, -0.25, 0.25, 0, 0.25}, 
-		}
-	}
-})
-minetest.register_node("mysponge:sponge_soaked",{
---	description = "Soaked Sponge",
-	tiles = {"mysponge_sponge4.png"},
-	drawtype = "nodebox",
-	visual_scale = 1.5,
-	paramtype = "light",
-	groups = {dig_immediate=1, oddly_breakable_by_hand=1, not_in_creative_inventory=1},
-	node_box = {
-		type = "fixed",
-		fixed = {
-			{-0.5, -0.5, -0.5, 0.5, 0.5, 0.5}, 
-		}
-	},
-	selection_box = {
-		type = "fixed",
-		fixed = {
-			{-0.5, -0.5, -0.5, 0.5, 0.5, 0.5}, 
-		}
-	},
-
-})
-minetest.register_node("mysponge:air1",{
+for i in ipairs(air_nodes) do
+	local airnode = air_nodes[i][1]
+minetest.register_node("mysponge:"..airnode,{
 --	description = "Air 1",
 	tiles = {"mysponge_air.png"},
 	drawtype = "allfaces",
 	walkable = false,
+	pointable = false,
 	paramtype = "light",
-	groups = {dig_immediate=1, oddly_breakable_by_hand=1, not_in_creative_inventory=1}
+	groups = {not_in_creative_inventory=1}
 })
-minetest.register_node("mysponge:air2",{
---	description = "Air 2",
-	tiles = {"mysponge_air.png"},
-	drawtype = "allfaces",
-	walkable = false,
-	paramtype = "light",
-	groups = {dig_immediate=1, oddly_breakable_by_hand=1, not_in_creative_inventory=1}
-})
-minetest.register_node("mysponge:air3",{
---	description = "Air 3",
-	tiles = {"mysponge_air.png"},
-	drawtype = "allfaces",
-	walkable = false,
-	paramtype = "light",
-	groups = {dig_immediate=1, oddly_breakable_by_hand=1, not_in_creative_inventory=1}
-})
+end
 
 
 minetest.register_node("mysponge:dry_leaves",{
@@ -127,27 +72,7 @@ minetest.register_node("mysponge:dry_leaves",{
 minetest.register_abm({
 	nodenames = {"group:water"},
 	neighbors = {"mysponge:sponge_dry"},
-	interval = 0.5,
-	chance = 1,
-	action = function(pos)
-		minetest.set_node(pos, {name="mysponge:air1"})	
-	end
-})
---Air 1
-minetest.register_abm({
-	nodenames = {"group:water"},
-	neighbors = {"mysponge:sponge_moist"},
-	interval = 0.5,
-	chance = 1,
-	action = function(pos)
-		minetest.set_node(pos, {name="mysponge:air1"})	
-	end
-})
---Air 1
-minetest.register_abm({
-	nodenames = {"group:water"},
-	neighbors = {"mysponge:sponge_wet"},
-	interval = 0.5,
+	interval = 0.2,
 	chance = 1,
 	action = function(pos)
 		minetest.set_node(pos, {name="mysponge:air1"})	
@@ -158,7 +83,7 @@ minetest.register_abm({
 minetest.register_abm({
 	nodenames = {"group:water"},
 	neighbors = {"mysponge:air1"},
-	interval = 0.5,
+	interval = 0.2,
 	chance = 1,
 	action = function(pos)
 		minetest.set_node(pos, {name="mysponge:air2"})	
@@ -169,7 +94,7 @@ minetest.register_abm({
 minetest.register_abm({
 	nodenames = {"group:water"},
 	neighbors = {"mysponge:air2"},
-	interval = 0.5,
+	interval = 0.2,
 	chance = 1,
 	action = function(pos)
 		minetest.set_node(pos, {name="mysponge:air3"})	
@@ -182,7 +107,7 @@ minetest.register_abm({
 
 minetest.register_abm({
 	nodenames = {"mysponge:air1","mysponge:air2","mysponge:air3"},
-	interval = 5,
+	interval = 4,
 	chance = 1,
 	action = function(pos)
 		minetest.set_node(pos, {name="air"})	
@@ -196,39 +121,20 @@ minetest.register_abm({
 minetest.register_abm({
 	nodenames = {"mysponge:sponge_dry"},
 	neighbors = {"group:water"},
-	interval = 0.5,
+	interval = 1,
 	chance = 1,
 	action = function(pos)
-		minetest.set_node(pos, {name="mysponge:sponge_moist"})	
+		minetest.set_node(pos, {name="mysponge:sponge_soaked"})	
 	end
 
 })
-minetest.register_abm({
-	nodenames = {"mysponge:sponge_moist"},
-	neighbors = {"mysponge:air1"},
-	interval = 0.5,
-	chance = 1,
-	action = function(pos)
-		minetest.set_node(pos, {name="mysponge:sponge_wet"})
-	end,
-})
-minetest.register_abm({
-	nodenames = {"mysponge:sponge_wet"},
-	neighbors = {"mysponge:air1"},
-	interval = 0.5,
-	chance = 1,
-	action = function(pos)
-		minetest.set_node(pos, {name="mysponge:sponge_soaked"})
-	end,
-})
-
 ------------------------------------------------------------------------------------------------
 --Shrink Sponge in Air
 ------------------------------------------------------------------------------------------------
 minetest.register_abm({
 	nodenames = {"mysponge:sponge_soaked"},
 	neighbors = {"air"},
-	interval = 120,
+	interval = 60,
 	chance = 1,
 	action = function(pos)
 		minetest.set_node(pos, {name="mysponge:sponge_wet"})
@@ -237,7 +143,7 @@ minetest.register_abm({
 minetest.register_abm({
 	nodenames = {"mysponge:sponge_wet"},
 	neighbors = {"air"},
-	interval = 120,
+	interval = 60,
 	chance = 1,
 	action = function(pos)
 		minetest.set_node(pos, {name="mysponge:sponge_moist"})
@@ -246,7 +152,7 @@ minetest.register_abm({
 minetest.register_abm({
 	nodenames = {"mysponge:sponge_moist"},
 	neighbors = {"air"},
-	interval = 120,
+	interval = 60,
 	chance = 1,
 	action = function(pos)
 		minetest.set_node(pos, {name="mysponge:sponge_dry"})
@@ -279,8 +185,6 @@ minetest.register_craft({
 			},
 		cooktime = 3,
 	})
-
-
 
 
 

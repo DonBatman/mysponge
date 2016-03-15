@@ -172,6 +172,13 @@ minetest.register_craft({
 	})
 minetest.register_craft({
 		type = "cooking",
+		output = "default:water_source 2",
+		recipe = "mysponge:sponge_wet",
+		cooktime = 5,
+		replacements = {{"mysponge:sponge_wet", "mysponge:sponge_dry"}},
+	})
+minetest.register_craft({
+		type = "cooking",
 		output = "mysponge:dry_leaves",
 		recipe = "group:leaves",
 		cooktime = 3,

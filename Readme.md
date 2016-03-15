@@ -8,3 +8,5 @@ Leave the sponge sit out and it will dry.
 
 
 Licence - WTFPL
+
+Forum - https://forum.minetest.net/viewtopic.php?f=9&t=11539

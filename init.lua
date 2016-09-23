@@ -43,12 +43,14 @@ local air_nodes = {
 for i in ipairs(air_nodes) do
 	local airnode = air_nodes[i][1]
 minetest.register_node("mysponge:"..airnode,{
---	description = "Air 1",
+	description = "Air",
+	inventory_image = "unknown_node.png",
 	tiles = {"mysponge_air.png"},
 	drawtype = "allfaces",
 	walkable = false,
 	pointable = false,
 	paramtype = "light",
+	drop = "",
 	groups = {not_in_creative_inventory=1}
 })
 end

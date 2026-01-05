@@ -1,49 +1,71 @@
 local modname = core.get_current_modname()
 
 local states = {
-    {id = "dry",    desc = "Dry Sponge",    tex = "mysponge_sponge.png",  size = 0.5,  inv = true},
-    {id = "moist",  desc = "Moist Sponge",  tex = "mysponge_sponge2.png", size = 0.7,  inv = false},
-    {id = "wet",    desc = "Wet Sponge",    tex = "mysponge_sponge3.png", size = 0.85, inv = false},
-    {id = "soaked", desc = "Soaked Sponge", tex = "mysponge_sponge3.png", size = 1.0,  inv = false},
+    {
+        id = "dry", desc = "Dry Sponge", tex = "mysponge_sponge.png", size = 0.5, 
+        inv = true, next_state = nil, dry_time = 0, drip_count = 0, steam_count = 0, water_yield = 0
+    },
+    {
+        id = "moist", desc = "Moist Sponge", tex = "mysponge_sponge2.png", size = 0.7, 
+        inv = false, next_state = "dry", dry_time = 45, drip_count = 2, steam_count = 1, water_yield = 1
+    },
+    {
+        id = "wet", desc = "Wet Sponge", tex = "mysponge_sponge3.png", size = 0.85, 
+        inv = false, next_state = "moist", dry_time = 60, drip_count = 8, steam_count = 3, water_yield = 2
+    },
+    {
+        id = "soaked", desc = "Soaked Sponge", tex = "mysponge_sponge3.png", size = 1.0, 
+        inv = false, next_state = "wet", dry_time = 90, drip_count = 25, steam_count = 10, water_yield = 3
+    },
 }
 
-local function dry_nearby_leaves(pos)
-    local radius = 1
-    local found = false
-    for x = -radius, radius do
-        for y = -radius, radius do
-            for z = -radius, radius do
-                local p = {x=pos.x+x, y=pos.y+y, z=pos.z+z}
-                local node = core.get_node(p).name
-                if core.get_item_group(node, "leaves") > 0 then
-                    core.set_node(p, {name = modname .. ":dry_leaves"})
-                    found = true
-                end
-            end
+local function is_touching_water(pos)
+    local sides = {
+        {x = pos.x + 1, y = pos.y,     z = pos.z},
+        {x = pos.x - 1, y = pos.y,     z = pos.z},
+        {x = pos.x,     y = pos.y + 1, z = pos.z},
+        {x = pos.x,     y = pos.y - 1, z = pos.z},
+        {x = pos.x,     y = pos.y,     z = pos.z + 1},
+        {x = pos.x,     y = pos.y,     z = pos.z - 1},
+    }
+    for _, s_pos in ipairs(sides) do
+        local node = core.get_node(s_pos)
+        if core.get_item_group(node.name, "water") ~= 0 then
+            return true
         end
     end
-    return found
+    return false
 end
 
 local function absorb_water(pos)
-    local radius = 5
-    local minp = vector.subtract(pos, radius)
-    local maxp = vector.add(pos, radius)
-    local nodes = core.find_nodes_in_area(minp, maxp, {"group:water"})
+    if not is_touching_water(pos) then
+        return false
+    end
+
+    local radius = 3
+    local nodes = core.find_nodes_in_area(
+        {x = pos.x - radius, y = pos.y - radius, z = pos.z - radius},
+        {x = pos.x + radius, y = pos.y + radius, z = pos.z + radius},
+        {"group:water"}
+    )
     
     if #nodes > 0 then
         for _, p in ipairs(nodes) do
-            core.set_node(p, {name = modname .. ":air_temp"})
+            core.remove_node(p)
         end
-        core.sound_play("default_water_footstep", {pos = pos, gain = 0.5})
+        core.set_node(pos, {name = modname .. ":sponge_soaked"})
         return true
     end
     return false
 end
 
+local state_data = {}
+for _, s in ipairs(states) do state_data[modname .. ":sponge_" .. s.id] = s end
+
 for _, state in ipairs(states) do
     local box_size = state.size / 2
-    local groups = {dig_immediate = 2}
+    local groups = {dig_immediate = 3, sponge = 1}
+    if state.id == "dry" then groups.sponge_dry = 1 end
     if not state.inv then groups.not_in_creative_inventory = 1 end
 
     core.register_node(modname .. ":sponge_" .. state.id, {
@@ -56,97 +78,165 @@ for _, state in ipairs(states) do
             type = "fixed",
             fixed = {-box_size, -0.5, -box_size, box_size, -0.5 + state.size, box_size},
         },
-        after_place_node = function(pos, placer, itemstack)
-            local leaves_dried = dry_nearby_leaves(pos)
-            local water_absorbed = absorb_water(pos)
-
-            if water_absorbed then
-                core.set_node(pos, {name = modname .. ":sponge_soaked"})
-            elseif leaves_dried and state.id == "dry" then
-                core.set_node(pos, {name = modname .. ":sponge_moist"})
+        
+        on_construct = function(pos)
+            if state.id == "dry" then
+                absorb_water(pos)
+            elseif state.next_state then
+                core.get_node_timer(pos):start(2)
             end
         end,
-        on_rightclick = function(pos, node, clicker, itemstack)
-            if itemstack:get_name() == "bucket:bucket_empty" and state.id ~= "dry" then
-                local inv = clicker:get_inventory()
-                if inv:room_for_item("main", "bucket:bucket_water") then
-                    itemstack:take_item()
-                    inv:add_item("main", "bucket:bucket_water")
-                    core.set_node(pos, {name = modname .. ":sponge_dry"})
-                    core.sound_play("default_water_footstep", {pos = pos, gain = 0.7})
-                end
+
+        on_neighbor_update = function(pos, node, neighbor_pos)
+            if state.id == "dry" then
+                absorb_water(pos)
             end
+        end,
+
+        on_punch = function(pos, node, puncher, pointed_thing)
+            if not puncher or not state.next_state then return end
+            
+            local held_item = puncher:get_wielded_item()
+            if held_item:get_name() == "bucket:bucket_empty" then
+                core.set_node(pos, {name = modname .. ":sponge_" .. state.next_state})
+                
+                held_item:take_item()
+                puncher:set_wielded_item(held_item)
+                
+                local inv = puncher:get_inventory()
+                local water_bucket = ItemStack("bucket:bucket_water")
+                if inv:room_for_item("main", water_bucket) then
+                    inv:add_item("main", water_bucket)
+                else
+                    core.add_item(puncher:get_pos(), water_bucket)
+                end
+                
+                core.sound_play("default_water_footstep", {pos = pos, gain = 0.5})
+            end
+        end,
+
+        on_timer = function(pos, elapsed)
+            local surrounding = core.find_nodes_in_area(vector.subtract(pos, 1), vector.add(pos, 1), {"group:lava"})
+            if #surrounding > 0 then
+                core.set_node(pos, {name = modname .. ":dried_leaves"})
+                return false
+            end
+
+            if not state.next_state then return false end
+
+            local meta = core.get_meta(pos)
+            local neighbors = core.find_nodes_in_area(vector.subtract(pos, 1), vector.add(pos, 1), {"air"})
+            
+            if #neighbors > 0 then
+                meta:set_int("is_drying", 1)
+                local current_dry = (meta:get_float("dry_progress") or 0) + elapsed
+                if current_dry >= state.dry_time then
+                    core.set_node(pos, {name = modname .. ":sponge_" .. state.next_state})
+                    return false
+                end
+                meta:set_float("dry_progress", current_dry)
+            else
+                meta:set_int("is_drying", 0)
+            end
+            return true
+        end,
+
+        on_blast = function(pos, intensity)
+            core.remove_node(pos)
+            return {modname .. ":sponge_" .. state.id}
         end,
     })
-end
 
-core.register_node(modname .. ":dry_leaves", {
-    description = "Dry Leaves",
-    tiles = {"mysponge_dry_leaves.png"},
-    drawtype = "allfaces_optional",
-    paramtype = "light",
-    groups = {snappy = 3, leafdecay = 3, leaves = 1, flammable = 2},
+    if state.water_yield > 0 then
+        core.register_craft({
+            type = "cooking",
+            output = modname .. ":sponge_dry",
+            recipe = modname .. ":sponge_" .. state.id,
+            cooktime = 3,
+            replacements = {
+                {modname .. ":sponge_" .. state.id, "default:water_source " .. state.water_yield}
+            }
+        })
+    end
+end
+core.register_abm({
+    label = "Sponge Leaf Drying",
+    nodenames = {"group:sponge"},
+    interval = 2.0,
+    chance = 5,
+    action = function(pos, node)
+        local radius = 1
+        local leaf_nodes = core.find_nodes_in_area(
+            {x = pos.x - radius, y = pos.y - radius, z = pos.z - radius},
+            {x = pos.x + radius, y = pos.y + radius, z = pos.z + radius},
+            {"group:leaves"}
+        )
+        
+        for _, leaf_pos in ipairs(leaf_nodes) do
+            core.set_node(leaf_pos, {name = modname .. ":dried_leaves"})
+        end
+    end,
 })
 
-core.register_node(modname .. ":air_temp", {
-    drawtype = "airlike",
-    walkable = false,
-    pointable = false,
-    buildable_to = true,
-    sunlight_propagates = true,
-    paramtype = "light",
-    groups = {not_in_creative_inventory = 1},
-    on_construct = function(pos)
-        core.get_node_timer(pos):start(1.0)
-    end,
-    on_timer = function(pos)
-        core.set_node(pos, {name = "air"})
+core.register_abm({
+    label = "Sponge Absorption Check",
+    nodenames = {"group:sponge_dry"},
+    neighbors = {"group:water"},
+    interval = 1.0,
+    chance = 1,
+    action = function(pos, node)
+        absorb_water(pos)
     end,
 })
 
 core.register_abm({
     label = "Sponge Effects",
-    nodenames = {modname .. ":sponge_moist", modname .. ":sponge_wet", modname .. ":sponge_soaked"},
-    interval = 1,
-    chance = 2,
+    nodenames = {"group:sponge"},
+    interval = 1.0,
+    chance = 1,
     action = function(pos, node)
-        if node.name == modname .. ":sponge_moist" then
-            core.add_particle({
-                pos = {x=pos.x + math.random(-2,2)/10, y=pos.y+0.2, z=pos.z + math.random(-2,2)/10},
-                velocity = {x=0, y=0.5, z=0},
-                expirationtime = 2,
-                size = 3,
-                texture = "mysponge_drop.png^[opacity:40",
+        local data = state_data[node.name]
+        if not data then return end
+        if data.drip_count > 0 then
+            core.add_particlespawner({
+                amount = data.drip_count,
+                time = 1,
+                minpos = {x=pos.x-0.2, y=pos.y-0.4, z=pos.z-0.2},
+                maxpos = {x=pos.x+0.2, y=pos.y-0.1, z=pos.z+0.2},
+                minvel = {x=0, y=-1, z=0},
+                maxvel = {x=0, y=-2, z=0},
+                minacc = {x=0, y=-9.8, z=0},
+                maxacc = {x=0, y=-9.8, z=0},
+                minexptime = 0.5,
+                maxexptime = 1.0,
+                minsize = 1,
+                maxsize = 2,
+                texture = "mysponge_drip.png",
             })
-        else
-            core.add_particle({
-                pos = {x=pos.x + math.random(-3,3)/10, y=pos.y-0.4, z=pos.z + math.random(-3,3)/10},
-                velocity = {x=0, y=-2, z=0},
-                acceleration = {x=0, y=-9, z=0},
-                expirationtime = 0.8,
-                size = 1.5,
-                collisiondetection = true,
-                texture = "mysponge_drop.png",
+        end
+        local meta = core.get_meta(pos)
+        if meta:get_int("is_drying") == 1 and data.steam_count > 0 then
+            core.add_particlespawner({
+                amount = data.steam_count,
+                time = 1,
+                minpos = {x=pos.x-0.3, y=pos.y, z=pos.z-0.3},
+                maxpos = {x=pos.x+0.3, y=pos.y+0.3, z=pos.z+0.3},
+                minvel = {x=-0.1, y=0.2, z=-0.1},
+                maxvel = {x=0.1, y=2.5, z=0.1},
+                minexptime = 1,
+                maxexptime = 2,
+                minsize = 0.5,
+                maxsize = 2,
+                texture = "mysponge_evap.png",
             })
         end
     end,
 })
 
-core.register_craft({
-    output = modname .. ":sponge_dry",
-    recipe = {
-        {"farming:string", "wool:yellow", "farming:string"},
-        {"wool:yellow", "default:mese_crystal_fragment", "wool:yellow"},
-        {"farming:string", "wool:yellow", "farming:string"},
-    }
+core.register_node(modname .. ":dried_leaves", {
+    description = "Dried Leaves",
+    drawtype = "allfaces_optional",
+    tiles = {"default_leaves.png^[colorize:#5C4033:120"},
+    paramtype = "light",
+    groups = {snappy = 3, flammable = 2, leaves = 1},
 })
-
-local wet_types = {"moist", "wet", "soaked"}
-for _, t in ipairs(wet_types) do
-    core.register_craft({
-        type = "cooking",
-        recipe = modname .. ":sponge_" .. t,
-        output = modname .. ":sponge_dry",
-        cooktime = 3,
-    })
-end

@@ -1,5 +1,3 @@
-local modname = core.get_current_modname()
-
 local states = {
     {
         id = "dry", desc = "Dry Sponge", tex = "mysponge_sponge.png", size = 0.5, 
@@ -14,7 +12,7 @@ local states = {
         inv = false, next_state = "moist", dry_time = 60, drip_count = 8, steam_count = 3, water_yield = 2
     },
     {
-        id = "soaked", desc = "Soaked Sponge", tex = "mysponge_sponge3.png", size = 1.0, 
+        id = "soaked", desc = "Soaked Sponge", tex = "mysponge_sponge4.png", size = 1.0, 
         inv = false, next_state = "wet", dry_time = 90, drip_count = 25, steam_count = 10, water_yield = 3
     },
 }
@@ -53,14 +51,14 @@ local function absorb_water(pos)
         for _, p in ipairs(nodes) do
             core.remove_node(p)
         end
-        core.set_node(pos, {name = modname .. ":sponge_soaked"})
+        core.set_node(pos, {name = "mysponge:sponge_soaked"})
         return true
     end
     return false
 end
 
 local state_data = {}
-for _, s in ipairs(states) do state_data[modname .. ":sponge_" .. s.id] = s end
+for _, s in ipairs(states) do state_data["mysponge:sponge_" .. s.id] = s end
 
 for _, state in ipairs(states) do
     local box_size = state.size / 2
@@ -68,7 +66,7 @@ for _, state in ipairs(states) do
     if state.id == "dry" then groups.sponge_dry = 1 end
     if not state.inv then groups.not_in_creative_inventory = 1 end
 
-    core.register_node(modname .. ":sponge_" .. state.id, {
+    core.register_node("mysponge:sponge_" .. state.id, {
         description = state.desc,
         tiles = {state.tex},
         drawtype = "nodebox",
@@ -98,7 +96,7 @@ for _, state in ipairs(states) do
             
             local held_item = puncher:get_wielded_item()
             if held_item:get_name() == "bucket:bucket_empty" then
-                core.set_node(pos, {name = modname .. ":sponge_" .. state.next_state})
+                core.set_node(pos, {name = "mysponge:sponge_" .. state.next_state})
                 
                 held_item:take_item()
                 puncher:set_wielded_item(held_item)
@@ -118,7 +116,7 @@ for _, state in ipairs(states) do
         on_timer = function(pos, elapsed)
             local surrounding = core.find_nodes_in_area(vector.subtract(pos, 1), vector.add(pos, 1), {"group:lava"})
             if #surrounding > 0 then
-                core.set_node(pos, {name = modname .. ":dried_leaves"})
+                core.set_node(pos, {name = "mysponge:dried_leaves"})
                 return false
             end
 
@@ -131,7 +129,7 @@ for _, state in ipairs(states) do
                 meta:set_int("is_drying", 1)
                 local current_dry = (meta:get_float("dry_progress") or 0) + elapsed
                 if current_dry >= state.dry_time then
-                    core.set_node(pos, {name = modname .. ":sponge_" .. state.next_state})
+                    core.set_node(pos, {name = "mysponge:sponge_" .. state.next_state})
                     return false
                 end
                 meta:set_float("dry_progress", current_dry)
@@ -143,18 +141,18 @@ for _, state in ipairs(states) do
 
         on_blast = function(pos, intensity)
             core.remove_node(pos)
-            return {modname .. ":sponge_" .. state.id}
+            return {"mysponge:sponge_" .. state.id}
         end,
     })
 
     if state.water_yield > 0 then
         core.register_craft({
             type = "cooking",
-            output = modname .. ":sponge_dry",
-            recipe = modname .. ":sponge_" .. state.id,
+            output = "mysponge:sponge_dry",
+            recipe = "mysponge:sponge_" .. state.id,
             cooktime = 3,
             replacements = {
-                {modname .. ":sponge_" .. state.id, "default:water_source " .. state.water_yield}
+                {"mysponge:sponge_" .. state.id, "default:water_source " .. state.water_yield}
             }
         })
     end
@@ -173,7 +171,7 @@ core.register_abm({
         )
         
         for _, leaf_pos in ipairs(leaf_nodes) do
-            core.set_node(leaf_pos, {name = modname .. ":dried_leaves"})
+            core.set_node(leaf_pos, {name = "mysponge:dried_leaves"})
         end
     end,
 })
@@ -233,7 +231,7 @@ core.register_abm({
     end,
 })
 
-core.register_node(modname .. ":dried_leaves", {
+core.register_node("mysponge:dried_leaves", {
     description = "Dried Leaves",
     drawtype = "allfaces_optional",
     tiles = {"default_leaves.png^[colorize:#5C4033:120"},

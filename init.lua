@@ -238,3 +238,10 @@ core.register_node("mysponge:dried_leaves", {
     paramtype = "light",
     groups = {snappy = 3, flammable = 2, leaves = 1},
 })
+
+if core.get_modpath("lucky_block") then
+	lucky_block:add_blocks({
+		{"nod", "mysponge:sponge_dry", 2},
+		{"nod", "mysponge:sponge_soaked", 2},
+	})
+end

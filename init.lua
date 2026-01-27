@@ -245,3 +245,11 @@ if core.get_modpath("lucky_block") then
 		{"nod", "mysponge:sponge_soaked", 2},
 	})
 end
+core.register_craft({
+	output = "mysponge:sponge_dry 1",
+	recipe = {
+		{"flowers:mushroom_red", "flowers:mushroom_red", ""},
+		{"flowers:mushroom_red", "flowers:mushroom_red", ""},
+		{"", "", ""},
+	}
+})
